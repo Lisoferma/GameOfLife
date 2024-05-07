@@ -125,6 +125,13 @@ internal class Window : GameWindow
     }
 
 
+    protected override void OnTextInput(TextInputEventArgs e)
+    {
+        base.OnTextInput(e);
+        _gui.PressChar((char)e.Unicode);
+    }
+
+
     private void UpdateTitle(double time)
     {
         _frameTime += time;
@@ -136,6 +143,42 @@ internal class Window : GameWindow
             _frameTime = 0.0f;
             _fps = 0;
         }
+    }
+
+
+    private void DrawGUI()
+    {
+        ImGui.DockSpaceOverViewport(ImGui.GetMainViewport(), ImGuiDockNodeFlags.PassthruCentralNode);
+        ImGui.StyleColorsLight();
+
+        ImGui.Begin("Settings");
+        
+        ImGui.Text("Max FPS (0 - unlimited)");
+        if (ImGui.InputInt("frames", ref _limitFps))
+            UpdateFrequency = _limitFps;
+
+        ImGui.NewLine();
+        ImGui.Text("Max cores");
+        if (ImGui.SliderInt("cores", ref _maxCores, 1, Environment.ProcessorCount))
+            _life.MaxCores = _maxCores;
+
+        ImGui.NewLine();
+        ImGui.Text("Field size");
+        ImGui.InputInt("cells", ref _fieldSize);
+        if (ImGui.Button("Apply"))
+            RecreateCanvas(_fieldSize, _fieldSize);
+
+        ImGui.NewLine();
+        ImGui.Text("Generate random field");
+        ImGui.InputInt("seed", ref _seed);
+        ImGui.SliderFloat("density", ref _density, 0.0f, 1.0f);
+        if (ImGui.Button("Apply##2"))
+            _life.GenerateRandomField(_seed, _density);
+
+        ImGui.End();
+    }
+
+
     private void RecreateCanvas(int newWidth, int newHeight)
     {
         _canvas.Dispose();
