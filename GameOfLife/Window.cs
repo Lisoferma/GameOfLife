@@ -19,6 +19,12 @@ internal class Window : GameWindow
     private int _fps = 0;
     private int _limitFps = 0;
 
+    private int _maxCores = Environment.ProcessorCount;
+
+    private int _fieldSize = CANVAS_WIDTH;
+    private int _seed = 123;
+    private float _density = 0.5f;
+
     private ImGuiController _gui;
     private Canvas _canvas;
     private Color[,] _image;
@@ -67,12 +73,7 @@ internal class Window : GameWindow
         _canvas.Render();
 
         _gui.Update(this, (float)e.Time);
-        ImGui.DockSpaceOverViewport(ImGui.GetMainViewport(), ImGuiDockNodeFlags.PassthruCentralNode);    
-        
-        ImGui.Begin("Life");
-        ImGui.Text("Text Test");
-        ImGui.End();
-
+        DrawGUI();
         _gui.Render();
         ImGuiController.CheckGLError("End of frame");
 
