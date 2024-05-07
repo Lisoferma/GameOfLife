@@ -104,15 +104,15 @@ internal class Window : GameWindow
             return;
 
         (int canvasX, int canvasY) = _canvas.GetCoord(MouseState.X, MouseState.Y);
-        _life.Set(canvasY, canvasX, true);
+        _life.Set(canvasX, canvasY, true);
 
-        Console.WriteLine($"\n    Width {ClientSize.X}");
-        Console.WriteLine($"   Height {ClientSize.Y}");
-        Console.WriteLine($"   MouseX {MouseState.X}");
-        Console.WriteLine($"   MouseY {MouseState.Y}");
-        Console.WriteLine($"  CanvasX {canvasX}");
-        Console.WriteLine($"  CanvasY {canvasY}");
-        Console.WriteLine($"PixelSize {_canvas.PixelSize}");
+        //Console.WriteLine($"\n    Width {ClientSize.X}");
+        //Console.WriteLine($"   Height {ClientSize.Y}");
+        //Console.WriteLine($"   MouseX {MouseState.X}");
+        //Console.WriteLine($"   MouseY {MouseState.Y}");
+        //Console.WriteLine($"  CanvasX {canvasX}");
+        //Console.WriteLine($"  CanvasY {canvasY}");
+        //Console.WriteLine($"PixelSize {_canvas.PixelSize}");
     }
 
 
