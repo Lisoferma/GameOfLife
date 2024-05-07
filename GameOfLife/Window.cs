@@ -17,6 +17,7 @@ internal class Window : GameWindow
 
     private double _frameTime = 0.0;
     private int _fps = 0;
+    private int _limitFps = 0;
 
     private ImGuiController _gui;
     private Canvas _canvas;

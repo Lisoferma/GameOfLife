@@ -15,7 +15,7 @@ internal class Program
 
         GameWindowSettings gameWindowSettings = new()
         {
-            UpdateFrequency = 60.0
+            UpdateFrequency = 0.0
         };
 
         using (Window window = new(gameWindowSettings, nativeWindowSettings))
