@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Concurrent;
+using System.Drawing;
 
 namespace GameOfLife;
 
@@ -8,7 +9,19 @@ public class GameOfLife
 
     public int Height { get; private set; }
 
-    private static byte[] _alivePerNeighbours = new byte[256];
+    public int MaxCores
+    {
+        get => _parallelOptions.MaxDegreeOfParallelism;
+
+        set
+        {
+            _parallelOptions.MaxDegreeOfParallelism = value;
+        }
+    }
+
+    private ParallelOptions _parallelOptions;
+
+    private static readonly byte[] _alivePerNeighbours = new byte[256];
 
     private byte[] _field;
 
@@ -19,6 +32,11 @@ public class GameOfLife
     {
         Width = width;
         Height = height;
+
+        _parallelOptions = new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount
+        };
 
         _field = new byte[Width * Height];
         _temp = new byte[Width * Height];
@@ -65,7 +83,31 @@ public class GameOfLife
                 *(ulong*)(tempPtr + i) = 0;
             }
 
-            for (int i = Width + 1; i < Width * Height - Width - 1; i += 8)
+            int from = Width + 1;
+            int to = Width * Height - Width - 1;
+
+            Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
+
+            for (int i = Width; i < Width * Height - Width; i++)
+            {
+                byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
+                fieldPtr[i] = _alivePerNeighbours[neighbours];
+            }
+        }
+
+        for (int j = 1; j < Height - 1; j++)
+        {
+            _field[j * Width] = 0;
+            _field[j * Width + Width - 1] = 0;
+        }
+    }
+
+
+    private unsafe void CountNeighbors(Tuple<int, int> range)
+    {
+        fixed (byte* fieldPtr = _field, tempPtr = _temp)
+        {
+            for (int i = range.Item1; i < range.Item2; i += 8)
             {
                 ulong* ptr = (ulong*)(tempPtr + i);
                 *ptr += *(ulong*)(fieldPtr + i - Width - 1);
@@ -77,19 +119,6 @@ public class GameOfLife
                 *ptr += *(ulong*)(fieldPtr + i + Width);
                 *ptr += *(ulong*)(fieldPtr + i + Width + 1);
             }
-
-            for (int i = Width; i < Width * Height - Width; i++)
-            {
-                byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
-                fieldPtr[i] = _alivePerNeighbours[neighbours];
-            }
-
-        }
-
-        for (int j = 1; j < Height - 1; j++)
-        {
-            _field[j * Width] = 0;
-            _field[j * Width + Width - 1] = 0;
         }
     }
 
