@@ -3,6 +3,8 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Drawing;
+using ImGuiNET;
+using DearImGui;
 using FoxCanvas;
 
 namespace GameOfLife;
@@ -16,6 +18,7 @@ internal class Window : GameWindow
     private double _frameTime = 0.0;
     private int _fps = 0;
 
+    private ImGuiController _gui;
     private Canvas _canvas;
     private Color[,] _image;
     private GameOfLife _life;
@@ -29,6 +32,8 @@ internal class Window : GameWindow
     protected override void OnLoad()
     {
         GL.ClearColor(Color.HotPink);
+
+        _gui = new ImGuiController(ClientSize.X, ClientSize.Y);
 
         _canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT, ClientSize.X, ClientSize.Y);
         _image = new Color[CANVAS_WIDTH, CANVAS_HEIGHT];
@@ -57,6 +62,17 @@ internal class Window : GameWindow
         GL.Clear(ClearBufferMask.ColorBufferBit);
 
         _canvas.Render();
+
+        _gui.Update(this, (float)e.Time);
+        ImGui.DockSpaceOverViewport(ImGui.GetMainViewport(), ImGuiDockNodeFlags.PassthruCentralNode);    
+        
+        ImGui.Begin("Life");
+        ImGui.Text("Text Test");
+        ImGui.End();
+
+        _gui.Render();
+        ImGuiController.CheckGLError("End of frame");
+
         SwapBuffers();
 
         base.OnRenderFrame(e);
@@ -66,6 +82,7 @@ internal class Window : GameWindow
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         GL.Viewport(0, 0, e.Width, e.Height);
+        _gui.WindowResized(e.Width, e.Height);
         _canvas.SetViewport(e.Width, e.Height);
         base.OnFramebufferResize(e);       
     }
