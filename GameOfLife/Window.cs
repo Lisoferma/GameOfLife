@@ -31,6 +31,8 @@ internal class Window : GameWindow
 
     protected override void OnLoad()
     {
+        base.OnLoad();
+
         GL.ClearColor(Color.HotPink);
 
         _gui = new ImGuiController(ClientSize.X, ClientSize.Y);
@@ -39,26 +41,26 @@ internal class Window : GameWindow
         _image = new Color[CANVAS_WIDTH, CANVAS_HEIGHT];
         
         _life = new(CANVAS_WIDTH, CANVAS_HEIGHT);
-        _life.GenerateRandomField(123, 0.5);
-
-        base.OnLoad();
+        _life.GenerateRandomField(123, 0.5);      
     }
 
 
     protected override void OnUpdateFrame(FrameEventArgs e)
     {
+        base.OnUpdateFrame(e);
+
         _life.Step();
         _life.GetImage(_image, Color.DeepPink, Color.White);
         _canvas.SetImage(_image);
 
-        UpdateTitle(e.Time);
-
-        base.OnUpdateFrame(e);
+        UpdateTitle(e.Time);    
     }
 
 
     protected override void OnRenderFrame(FrameEventArgs e)
     {
+        base.OnRenderFrame(e);
+
         GL.Clear(ClearBufferMask.ColorBufferBit);
 
         _canvas.Render();
@@ -73,18 +75,16 @@ internal class Window : GameWindow
         _gui.Render();
         ImGuiController.CheckGLError("End of frame");
 
-        SwapBuffers();
-
-        base.OnRenderFrame(e);
+        SwapBuffers();    
     }
 
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
+        base.OnFramebufferResize(e);
         GL.Viewport(0, 0, e.Width, e.Height);
         _gui.WindowResized(e.Width, e.Height);
-        _canvas.SetViewport(e.Width, e.Height);
-        base.OnFramebufferResize(e);       
+        _canvas.SetViewport(e.Width, e.Height);         
     }
 
 
@@ -117,10 +117,10 @@ internal class Window : GameWindow
 
     protected override void OnKeyDown(KeyboardKeyEventArgs e)
     {
-        if (e.Key == Keys.Escape)
-            Close();
-            
         base.OnKeyDown(e);
+
+        if (e.Key == Keys.Escape)
+            Close();      
     }
 
 
