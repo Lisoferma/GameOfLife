@@ -136,5 +136,13 @@ internal class Window : GameWindow
             _frameTime = 0.0f;
             _fps = 0;
         }
+    private void RecreateCanvas(int newWidth, int newHeight)
+    {
+        _canvas.Dispose();
+        _canvas = new Canvas(newWidth, newHeight, ClientSize.X, ClientSize.Y);
+        _image = new Color[newWidth, newHeight];
+
+        _life = new(newWidth, newHeight);
+        _life.GenerateRandomField(123, 0.5);
     }
 }
