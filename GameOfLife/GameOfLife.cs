@@ -31,6 +31,9 @@ public class GameOfLife
         }
 
     /// <summary>
+    /// Количество живых клеток.
+    /// </summary>
+    public int LiveCellCount;
     /// Содержит состояния живых и мёртвых клеток для каждой комбинации расположения соседей.
     /// Заменяет проверки на количество соседей для оптимизации.
     /// </summary>
@@ -194,6 +197,10 @@ public class GameOfLife
     {
         fixed (byte* fieldPtr = _field, tempPtr = _temp)
         {
+            byte neighbours;
+            byte cellStatus;
+            int liveCellCount = 0;
+
             for (int i = range.Item1; i < range.Item2; i++)
             {
                 // Максимальное число соседей - 8 (4 бита). Уменьшим до 3 битов, т.к.
@@ -201,9 +208,13 @@ public class GameOfLife
                 // используя "& 7". Состояние текущей клетки положим в 4 бит используя "<< 3".
                 // Объеденим количество соседей и состояние клетки в один байт используя "|".
                 // По таблице узнаём новое состояние клетки.
-                byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
-                fieldPtr[i] = _alivePerNeighbours[neighbours];
+                neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
+                cellStatus = _alivePerNeighbours[neighbours];
+                fieldPtr[i] = cellStatus;
+                liveCellCount += cellStatus;
             }
+
+            LiveCellCount = liveCellCount;
         }
     }
 
@@ -241,25 +252,6 @@ public class GameOfLife
                 Set(x, y, isLiveCell);
             }
         }
-    }
-
-
-    /// <summary>
-    /// Получить количество живых клеток.
-    /// </summary>
-    public int GetLiveCellsCount()
-    {
-        int count = 0;
-
-        for (int x = 1; x < Width - 1; x++)
-        {
-            for (int y = 1; y < Height - 1; y++)
-            {
-                if (Get(x, y)) count++;
-            }
-        }
-
-        return count;
     }
 
 
