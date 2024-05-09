@@ -1,30 +1,55 @@
-﻿using System.Collections.Concurrent;
+﻿// @author Lisoferma
+// Оптимизации игры взяты из https://habr.com/ru/articles/505606/
+
+using System.Collections.Concurrent;
 using System.Drawing;
 
 namespace GameOfLife;
 
+/// <summary>
+/// Игра жизнь. Поле ограничено. Поддерживает многопоточность.
+/// </summary>
 public class GameOfLife
 {
-    public int Width {  get; private set; }
+    /// <summary>
+    /// Ширина поля.
+    /// </summary>
+    public int Width { get; private set; }
 
+    /// <summary>
+    /// Высота поля.
+    /// </summary>
     public int Height { get; private set; }
 
+    /// <summary>
+    /// Максимальное количество потоков для вычислений.
+    /// </summary>
     public int MaxCores
     {
         get => _parallelOptions.MaxDegreeOfParallelism;
-
-        set
-        {
-            _parallelOptions.MaxDegreeOfParallelism = value;
+        set => _parallelOptions.MaxDegreeOfParallelism = value;
         }
-    }
 
+    /// <summary>
+    /// Содержит состояния живых и мёртвых клеток для каждой комбинации расположения соседей.
+    /// Заменяет проверки на количество соседей для оптимизации.
+    /// </summary>
+    private static readonly byte[] _alivePerNeighbours = new byte[16];
+
+    /// <summary>
+    /// Настройки для распаралеливающих циклов.
+    /// </summary>
     private ParallelOptions _parallelOptions;
 
-    private static readonly byte[] _alivePerNeighbours = new byte[256];
-
+    /// <summary>
+    /// Поле игры, содержащее результат вычислений.
+    /// 1 - живая клетка, 0 - мёртвая клетка.
+    /// </summary>
     private byte[] _field;
 
+    /// <summary>
+    /// Содержит количество соседей для каждой клетки.
+    /// </summary>
     private byte[] _temp;
 
 
@@ -41,6 +66,11 @@ public class GameOfLife
     }
 
 
+    /// <summary>
+    /// Инициализировать игру с заданной шириной и высотой поля.
+    /// </summary>
+    /// <param name="width">Ширина поля.</param>
+    /// <param name="height">Высота поля.</param>
     public GameOfLife(int width, int height)
     {
         Width = width;
@@ -56,6 +86,12 @@ public class GameOfLife
     }
 
 
+    /// <summary>
+    /// Получить изображение поля.
+    /// </summary>
+    /// <param name="image">Массив цветов для отображения.</param>
+    /// <param name="lifeColor">Цвет живой клетки.</param>
+    /// <param name="deadColor">Цвет мёртвой клетки.</param>
     public void GetImage(Color[,] image, Color lifeColor, Color deadColor)
     {
         int totalPixels = Height * Width;
@@ -76,18 +112,33 @@ public class GameOfLife
         }
 
 
-    public bool Get(int i, int j)
+    /// <summary>
+    /// Получить состояние клетки по координатам.
+    /// </summary>
+    /// <param name="x">Координата по X.</param>
+    /// <param name="y">Координата по Y.</param>
+    /// <returns>Состояние клекти: true - живая, false - мёртвая.</returns>
+    public bool Get(int x, int y)
     {
-        return _field[j * Width + i] == 1;
+        return _field[x * Width + y] == 1;
     }
 
 
-    public void Set(int i, int j, bool value)
+    /// <summary>
+    /// Установить состояние клекти по координатам.
+    /// </summary>
+    /// <param name="x">Координата по X.</param>
+    /// <param name="y">Координата по Y.</param>
+    /// <param name="value">Состояние клекти: true - живая, false - мёртвая.</param>
+    public void Set(int x, int y, bool value)
     {
-        _field[j * Width + i] = (byte)(value ? 1 : 0);
+        _field[x * Width + y] = (byte)(value ? 1 : 0);
     }
 
 
+    /// <summary>
+    /// Перейти на следующее поколение.
+    /// </summary>
     public void Step()
     {
         int from = 0;
@@ -103,7 +154,7 @@ public class GameOfLife
         from = Width;
         to = Width * Height - Width;
 
-        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, FillLife);
+        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, DetermineCellsState);
 
         from = 1;
         to = Height - 1;
@@ -112,6 +163,10 @@ public class GameOfLife
         }
 
 
+    /// <summary>
+    /// Очистить массив <see cref="_temp"/> на заданном отрезке.
+    /// </summary>
+    /// <param name="range">Отрезок массива который нужно очистить.</param>
     private unsafe void ClearTemp(Tuple<int, int> range)
     {
         fixed (byte* tempPtr = _temp)
@@ -124,6 +179,12 @@ public class GameOfLife
     }
 
 
+    /// <summary>
+    /// Подсчитать количество соседей для каждой клетки
+    /// на заданном отрезке поля <see cref="_field"/>.
+    /// Результат хранится в <see cref="_temp"/>.
+    /// </summary>
+    /// <param name="range">Отрезок массива на котором нужно провести подсчёт.</param>
     private unsafe void CountNeighbors(Tuple<int, int> range)
     {
         fixed (byte* fieldPtr = _field, tempPtr = _temp)
@@ -144,12 +205,22 @@ public class GameOfLife
     }
 
 
-    private unsafe void FillLife(Tuple<int, int> range)
+    /// <summary>
+    /// Определить состояние клеток на заданном отрезке поля <see cref="_field"/>
+    /// в зависимости от числа соседей посчитаных в <see cref="_temp"/>.
+    /// </summary>
+    /// <param name="range">Отрезок массива на котором нужно определить состояние клеток.</param>
+    private unsafe void DetermineCellsState(Tuple<int, int> range)
     {
         fixed (byte* fieldPtr = _field, tempPtr = _temp)
         {
             for (int i = range.Item1; i < range.Item2; i++)
             {
+                // Максимальное число соседей - 8 (4 бита). Уменьшим до 3 битов, т.к.
+                // 8 и 0 соседей дают одинаковый эффект, поэтому игнорируем четвертый бит
+                // используя "& 7". Состояние текущей клетки положим в 4 бит используя "<< 3".
+                // Объеденим количество соседей и состояние клетки в один байт используя "|".
+                // По таблице узнаём новое состояние клетки.
                 byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
                 fieldPtr[i] = _alivePerNeighbours[neighbours];
             }
@@ -157,6 +228,11 @@ public class GameOfLife
     }
 
 
+    /// <summary>
+    /// Заполнить левую и правую границы поля <see cref="_field"/>
+    /// мёртвыми клетками на заданном отрезке.
+    /// </summary>
+    /// <param name="range">Отрезок границ на которых нужно заполнить клетки.</param>
     private void FillBorderWithZeros(Tuple<int, int> range)
     {
         for (int j = range.Item1; j < range.Item2; j++)
@@ -167,7 +243,13 @@ public class GameOfLife
     }
 
 
-    public void GenerateRandomField(int seedForRandom, double threshold)
+    /// <summary>
+    /// Создать случайное поле.
+    /// </summary>
+    /// <param name="seedForRandom">Сид для генерации.</param>
+    /// <param name="density">Плотность живых клеток в диапазоне 0.0 - 1.0,
+    /// чем больше плотность, тем больше живых клеток.</param>
+    public void GenerateRandomField(int seedForRandom, double density)
     {
         Random rand = new(seedForRandom);
 
@@ -175,13 +257,16 @@ public class GameOfLife
         {
             for (int y = 1; y < Height - 1; y++)
             {
-                bool isLiveCell = rand.NextDouble() < threshold;
+                bool isLiveCell = rand.NextDouble() < density;
                 Set(x, y, isLiveCell);
             }
         }
     }
 
 
+    /// <summary>
+    /// Получить количество живых клеток.
+    /// </summary>
     public int GetLiveCellsCount()
     {
         int count = 0;
@@ -198,6 +283,9 @@ public class GameOfLife
     }
 
 
+    /// <summary>
+    /// Очистить поле.
+    /// </summary>
     public void Clear()
     {
         for (int i = 1; i < Width - 1; i++)
