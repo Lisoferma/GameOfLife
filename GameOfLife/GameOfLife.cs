@@ -1,5 +1,5 @@
 ﻿// @author Lisoferma
-// Оптимизации игры взяты из https://habr.com/ru/articles/505606/
+// Некоторые оптимизации игры взяты из https://habr.com/ru/articles/505606/
 
 using System.Collections.Concurrent;
 using System.Drawing;
@@ -34,6 +34,11 @@ public class GameOfLife
     /// Высота поля.
     /// </summary>
     private readonly int _height;
+
+    /// <summary>
+    /// Количество клеток поля.
+    /// </summary>
+    private readonly int _totalCells;
 
     /// <summary>
     /// Содержит состояния живых и мёртвых клеток для каждой комбинации расположения соседей.
@@ -80,14 +85,15 @@ public class GameOfLife
     {
         _width = width;
         _height = height;
+        _totalCells = _width * _width;
+
+        _field = new byte[_totalCells];
+        _temp = new byte[_totalCells];
 
         _parallelOptions = new ParallelOptions()
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
-
-        _field = new byte[_width * _height];
-        _temp = new byte[_width * _height];
     }
 
 
@@ -117,16 +123,14 @@ public class GameOfLife
     /// <param name="deadColor">Цвет мёртвой клетки.</param>
     public void GetImage(Color[,] image, Color lifeColor, Color deadColor)
     {
-        int totalPixels = _height * _width;
-
-        Parallel.ForEach(Partitioner.Create(0, totalPixels), _parallelOptions, range =>
+        Parallel.ForEach(Partitioner.Create(0, _totalCells), _parallelOptions, range =>
         {
             for (int i = range.Item1; i < range.Item2; i++)
             {
                 int y = i / _width;
                 int x = i % _width;
 
-                if (Get(x, y))
+                if (_field[x * _width + y] == 1)
                     image[y, x] = lifeColor;
                 else
                     image[y, x] = deadColor;
@@ -165,12 +169,12 @@ public class GameOfLife
     public void Step()
     {
         int from = _width + 1;
-        int to = _width * _height - _width - 1;
+        int to = _totalCells - _width - 1;
 
         Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
 
         from = _width;
-        to = _width * _height - _width;
+        to = _totalCells - _width;
 
         Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, DetermineCellsState);
 
@@ -191,18 +195,23 @@ public class GameOfLife
     {
         fixed (byte* fieldPtr = _field, tempPtr = _temp)
         {
+            byte* currFieldPtr;
+            ulong* currTempPtr;
+
             for (int i = range.Item1; i < range.Item2; i += 8)
             {
-                ulong* ptr = (ulong*)(tempPtr + i);
-                *ptr = 0;
-                *ptr += *(ulong*)(fieldPtr + i - _width - 1);
-                *ptr += *(ulong*)(fieldPtr + i - _width);
-                *ptr += *(ulong*)(fieldPtr + i - _width + 1);
-                *ptr += *(ulong*)(fieldPtr + i - 1);
-                *ptr += *(ulong*)(fieldPtr + i + 1);
-                *ptr += *(ulong*)(fieldPtr + i + _width - 1);
-                *ptr += *(ulong*)(fieldPtr + i + _width);
-                *ptr += *(ulong*)(fieldPtr + i + _width + 1);
+                currFieldPtr = fieldPtr + i;
+                currTempPtr = (ulong*)(tempPtr + i);
+
+                *currTempPtr = 0;
+                *currTempPtr += *(ulong*)(currFieldPtr - _width - 1);
+                *currTempPtr += *(ulong*)(currFieldPtr - _width);
+                *currTempPtr += *(ulong*)(currFieldPtr - _width + 1);
+                *currTempPtr += *(ulong*)(currFieldPtr - 1);
+                *currTempPtr += *(ulong*)(currFieldPtr + 1);
+                *currTempPtr += *(ulong*)(currFieldPtr + _width - 1);
+                *currTempPtr += *(ulong*)(currFieldPtr + _width);
+                *currTempPtr += *(ulong*)(currFieldPtr + _width + 1);
             }
         }
     }
