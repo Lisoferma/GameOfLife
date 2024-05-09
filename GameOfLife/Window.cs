@@ -26,6 +26,7 @@ internal class Window : GameWindow
     private int _fieldSize = CANVAS_WIDTH;
     private int _seed = 123;
     private float _density = 0.5f;
+    private long _generation = 0;
 
     private ImGuiController _gui;
     private Canvas _canvas;
@@ -62,7 +63,8 @@ internal class Window : GameWindow
         _life.GetImage(_image, Color.DeepPink, Color.White);
         _canvas.SetImage(_image);
 
-        UpdateTitle(e.Time);    
+        ++_generation;
+
         UpdateFps(e.Time);
     }
 
@@ -163,29 +165,37 @@ internal class Window : GameWindow
         ImGui.DockSpaceOverViewport(ImGui.GetMainViewport(), ImGuiDockNodeFlags.PassthruCentralNode);
         ImGui.StyleColorsLight();
 
-        ImGui.Begin("Settings");
-        
-        ImGui.Text("Max FPS (0 - unlimited)");
-        if (ImGui.InputInt("frames", ref _limitFps))
-            UpdateFrequency = _limitFps;
+        ImGui.Begin("Game of Life");
 
-        ImGui.NewLine();
-        ImGui.Text("Max cores");
-        if (ImGui.SliderInt("cores", ref _maxCores, 1, Environment.ProcessorCount))
-            _life.MaxCores = _maxCores;
+        ImGui.TextWrapped($"Live cells: {_life.LiveCellCount}");
+        ImGui.TextWrapped($"Generation: {_generation}");
 
-        ImGui.NewLine();
-        ImGui.Text("Field size");
-        ImGui.InputInt("cells", ref _fieldSize);
-        if (ImGui.Button("Apply"))
-            RecreateCanvas(_fieldSize, _fieldSize);
+        if (ImGui.CollapsingHeader("Field"))
+        {
+            ImGui.Text("Field size");
+            ImGui.InputInt("cells", ref _fieldSize);
+            if (ImGui.Button("Apply"))
+                RecreateCanvas(_fieldSize, _fieldSize);
 
-        ImGui.NewLine();
-        ImGui.Text("Generate random field");
-        ImGui.InputInt("seed", ref _seed);
-        ImGui.SliderFloat("density", ref _density, 0.0f, 1.0f);
-        if (ImGui.Button("Apply##2"))
-            _life.GenerateRandomField(_seed, _density);
+            ImGui.NewLine();
+            ImGui.Text("Generate random field");
+            ImGui.InputInt("seed", ref _seed);
+            ImGui.SliderFloat("density", ref _density, 0.0f, 1.0f);
+            if (ImGui.Button("Apply##2"))
+                _life.GenerateRandomField(_seed, _density);
+        }
+
+        if (ImGui.CollapsingHeader("Settings"))
+        {
+            ImGui.Text("Max FPS (0 - unlimited)");
+            if (ImGui.InputInt("frames", ref _limitFps))
+                UpdateFrequency = _limitFps;
+
+            ImGui.NewLine();
+            ImGui.Text("Max cores");
+            if (ImGui.SliderInt("cores", ref _maxCores, 1, Environment.ProcessorCount))
+                _life.MaxCores = _maxCores;
+        }
 
         ImGui.End();
     }
