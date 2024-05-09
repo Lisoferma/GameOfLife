@@ -12,28 +12,30 @@ namespace GameOfLife;
 public class GameOfLife
 {
     /// <summary>
-    /// Ширина поля.
-    /// </summary>
-    public int Width { get; private set; }
-
-    /// <summary>
-    /// Высота поля.
-    /// </summary>
-    public int Height { get; private set; }
-
-    /// <summary>
     /// Максимальное количество потоков для вычислений.
     /// </summary>
     public int MaxCores
     {
         get => _parallelOptions.MaxDegreeOfParallelism;
         set => _parallelOptions.MaxDegreeOfParallelism = value;
-        }
+    }
 
     /// <summary>
     /// Количество живых клеток.
     /// </summary>
     public int LiveCellCount;
+
+    /// <summary>
+    /// Ширина поля.
+    /// </summary>
+    private readonly int _width;
+
+    /// <summary>
+    /// Высота поля.
+    /// </summary>
+    private readonly int _height;
+
+    /// <summary>
     /// Содержит состояния живых и мёртвых клеток для каждой комбинации расположения соседей.
     /// Заменяет проверки на количество соседей для оптимизации.
     /// </summary>
@@ -76,16 +78,34 @@ public class GameOfLife
     /// <param name="height">Высота поля.</param>
     public GameOfLife(int width, int height)
     {
-        Width = width;
-        Height = height;
+        _width = width;
+        _height = height;
 
         _parallelOptions = new ParallelOptions()
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
 
-        _field = new byte[Width * Height];
-        _temp = new byte[Width * Height];
+        _field = new byte[_width * _height];
+        _temp = new byte[_width * _height];
+    }
+
+
+    /// <summary>
+    /// Получить ширину поля.
+    /// </summary>
+    public int GetWidth()
+    {
+        return _width;
+    }
+
+
+    /// <summary>
+    /// Получить высоту поля.
+    /// </summary>
+    public int GetHeight()
+    {
+        return _height;
     }
 
 
@@ -97,14 +117,14 @@ public class GameOfLife
     /// <param name="deadColor">Цвет мёртвой клетки.</param>
     public void GetImage(Color[,] image, Color lifeColor, Color deadColor)
     {
-        int totalPixels = Height * Width;
+        int totalPixels = _height * _width;
 
         Parallel.ForEach(Partitioner.Create(0, totalPixels), _parallelOptions, range =>
         {
             for (int i = range.Item1; i < range.Item2; i++)
             {
-                int y = i / Width;
-                int x = i % Width;
+                int y = i / _width;
+                int x = i % _width;
 
                 if (Get(x, y))
                     image[y, x] = lifeColor;
@@ -112,7 +132,7 @@ public class GameOfLife
                     image[y, x] = deadColor;
             }
         });
-        }
+    }
 
 
     /// <summary>
@@ -123,7 +143,7 @@ public class GameOfLife
     /// <returns>Состояние клекти: true - живая, false - мёртвая.</returns>
     public bool Get(int x, int y)
     {
-        return _field[x * Width + y] == 1;
+        return _field[x * _width + y] == 1;
     }
 
 
@@ -135,7 +155,7 @@ public class GameOfLife
     /// <param name="value">Состояние клекти: true - живая, false - мёртвая.</param>
     public void Set(int x, int y, bool value)
     {
-        _field[x * Width + y] = (byte)(value ? 1 : 0);
+        _field[x * _width + y] = (byte)(value ? 1 : 0);
     }
 
 
@@ -144,21 +164,21 @@ public class GameOfLife
     /// </summary>
     public void Step()
     {
-        int from = Width + 1;
-        int to = Width * Height - Width - 1;
+        int from = _width + 1;
+        int to = _width * _height - _width - 1;
 
-            Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
+        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
 
-        from = Width;
-        to = Width * Height - Width;
+        from = _width;
+        to = _width * _height - _width;
 
         Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, DetermineCellsState);
 
         from = 1;
-        to = Height - 1;
+        to = _height - 1;
 
         Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, FillBorderWithZeros);
-        }
+    }
 
 
     /// <summary>
@@ -175,14 +195,14 @@ public class GameOfLife
             {
                 ulong* ptr = (ulong*)(tempPtr + i);
                 *ptr = 0;
-                *ptr += *(ulong*)(fieldPtr + i - Width - 1);
-                *ptr += *(ulong*)(fieldPtr + i - Width);
-                *ptr += *(ulong*)(fieldPtr + i - Width + 1);
+                *ptr += *(ulong*)(fieldPtr + i - _width - 1);
+                *ptr += *(ulong*)(fieldPtr + i - _width);
+                *ptr += *(ulong*)(fieldPtr + i - _width + 1);
                 *ptr += *(ulong*)(fieldPtr + i - 1);
                 *ptr += *(ulong*)(fieldPtr + i + 1);
-                *ptr += *(ulong*)(fieldPtr + i + Width - 1);
-                *ptr += *(ulong*)(fieldPtr + i + Width);
-                *ptr += *(ulong*)(fieldPtr + i + Width + 1);
+                *ptr += *(ulong*)(fieldPtr + i + _width - 1);
+                *ptr += *(ulong*)(fieldPtr + i + _width);
+                *ptr += *(ulong*)(fieldPtr + i + _width + 1);
             }
         }
     }
@@ -228,8 +248,8 @@ public class GameOfLife
     {
         for (int j = range.Item1; j < range.Item2; j++)
         {
-            _field[j * Width] = 0;
-            _field[j * Width + Width - 1] = 0;
+            _field[j * _width] = 0;
+            _field[j * _width + _width - 1] = 0;
         }
     }
 
@@ -244,9 +264,9 @@ public class GameOfLife
     {
         Random rand = new(seedForRandom);
 
-        for (int x = 1; x < Width - 1; x++)
+        for (int x = 1; x < _width - 1; x++)
         {
-            for (int y = 1; y < Height - 1; y++)
+            for (int y = 1; y < _height - 1; y++)
             {
                 bool isLiveCell = rand.NextDouble() < density;
                 Set(x, y, isLiveCell);
@@ -260,12 +280,12 @@ public class GameOfLife
     /// </summary>
     public void Clear()
     {
-        for (int i = 1; i < Width - 1; i++)
+        for (int i = 1; i < _width - 1; i++)
         {
-            for (int j = 1; j < Height - 1; j++)
+            for (int j = 1; j < _height - 1; j++)
             {
                 Set(i, j, false);
             }
-        }         
+        }
     }
 }
