@@ -141,13 +141,8 @@ public class GameOfLife
     /// </summary>
     public void Step()
     {
-        int from = 0;
-        int to = Width * Height;
-
-        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, ClearTemp);
-
-        from = Width + 1;
-        to = Width * Height - Width - 1;
+        int from = Width + 1;
+        int to = Width * Height - Width - 1;
 
             Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
 
@@ -164,22 +159,6 @@ public class GameOfLife
 
 
     /// <summary>
-    /// Очистить массив <see cref="_temp"/> на заданном отрезке.
-    /// </summary>
-    /// <param name="range">Отрезок массива который нужно очистить.</param>
-    private unsafe void ClearTemp(Tuple<int, int> range)
-    {
-        fixed (byte* tempPtr = _temp)
-        {
-            for (int i = range.Item1; i < range.Item2; i += 8)
-        {
-                *(ulong*)(tempPtr + i) = 0;
-            }
-        }
-    }
-
-
-    /// <summary>
     /// Подсчитать количество соседей для каждой клетки
     /// на заданном отрезке поля <see cref="_field"/>.
     /// Результат хранится в <see cref="_temp"/>.
@@ -192,6 +171,7 @@ public class GameOfLife
             for (int i = range.Item1; i < range.Item2; i += 8)
             {
                 ulong* ptr = (ulong*)(tempPtr + i);
+                *ptr = 0;
                 *ptr += *(ulong*)(fieldPtr + i - Width - 1);
                 *ptr += *(ulong*)(fieldPtr + i - Width);
                 *ptr += *(ulong*)(fieldPtr + i - Width + 1);
