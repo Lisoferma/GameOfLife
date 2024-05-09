@@ -28,6 +28,19 @@ public class GameOfLife
     private byte[] _temp;
 
 
+    static GameOfLife()
+    {
+        // Живая клетка с двумя соседями
+        _alivePerNeighbours[3] = 1;
+
+        // Живая клетка с тремя соседями
+        _alivePerNeighbours[8 + 2] = 1;
+
+        // Мёртвая клетка с тремя соседями
+        _alivePerNeighbours[8 + 3] = 1;
+    }
+
+
     public GameOfLife(int width, int height)
     {
         Width = width;
@@ -40,10 +53,6 @@ public class GameOfLife
 
         _field = new byte[Width * Height];
         _temp = new byte[Width * Height];
-
-        _alivePerNeighbours[3] = 1;
-        _alivePerNeighbours[8 + 2] = 1;
-        _alivePerNeighbours[8 + 3] = 1;
     }
 
 
