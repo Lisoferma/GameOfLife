@@ -15,9 +15,11 @@ internal class Window : GameWindow
     private const int CANVAS_WIDTH = 500;
     private const int CANVAS_HEIGHT = 500;
 
-    private double _frameTime = 0.0;
+    private double _frameTimeCounter = 0.0;   
+    private int _fpsCounter = 0;
     private int _fps = 0;
     private int _limitFps = 0;
+    private int _limitSteps = -1;
 
     private int _maxCores = Environment.ProcessorCount;
 
@@ -61,6 +63,7 @@ internal class Window : GameWindow
         _canvas.SetImage(_image);
 
         UpdateTitle(e.Time);    
+        UpdateFps(e.Time);
     }
 
 
@@ -133,17 +136,25 @@ internal class Window : GameWindow
     }
 
 
-    private void UpdateTitle(double time)
+    private void UpdateFps(double time)
     {
-        _frameTime += time;
-        _fps++;
+        _frameTimeCounter += time;
+        ++_fpsCounter;
 
-        if (_frameTime >= 1.0f)
+        if (_frameTimeCounter >= 1.0f)
         {
-            Title = $"{TITLE} | {_fps} fps";
-            _frameTime = 0.0f;
-            _fps = 0;
+            _fps = _fpsCounter;
+            _frameTimeCounter = 0.0f;
+            _fpsCounter = 0;
+
+            UpdateTitle();
         }
+    }
+
+
+    private void UpdateTitle()
+    {
+        Title = $"{TITLE} | {_fps} fps";
     }
 
 
