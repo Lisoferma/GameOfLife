@@ -49,17 +49,22 @@ public class GameOfLife
 
     public void GetImage(Color[,] image, Color lifeColor, Color deadColor)
     {
-        for (int x = 0; x < Width; x++)
+        int totalPixels = Height * Width;
+
+        Parallel.ForEach(Partitioner.Create(0, totalPixels), _parallelOptions, range =>
         {
-            for (int y = 0; y < Height; y++)
+            for (int i = range.Item1; i < range.Item2; i++)
             {
+                int y = i / Width;
+                int x = i % Width;
+
                 if (Get(x, y))
                     image[y, x] = lifeColor;
                 else
                     image[y, x] = deadColor;
             }
+        });
         }
-    }
 
 
     public bool Get(int i, int j)
@@ -74,31 +79,38 @@ public class GameOfLife
     }
 
 
-    public unsafe void Step()
+    public void Step()
     {
-        fixed (byte* fieldPtr = _field, tempPtr = _temp)
-        {
-            for (int i = 0; i < Width * Height; i += 8)
-            {
-                *(ulong*)(tempPtr + i) = 0;
-            }
+        int from = 0;
+        int to = Width * Height;
 
-            int from = Width + 1;
-            int to = Width * Height - Width - 1;
+        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, ClearTemp);
+
+        from = Width + 1;
+        to = Width * Height - Width - 1;
 
             Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, CountNeighbors);
 
-            for (int i = Width; i < Width * Height - Width; i++)
-            {
-                byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
-                fieldPtr[i] = _alivePerNeighbours[neighbours];
-            }
+        from = Width;
+        to = Width * Height - Width;
+
+        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, FillLife);
+
+        from = 1;
+        to = Height - 1;
+
+        Parallel.ForEach(Partitioner.Create(from, to), _parallelOptions, FillBorderWithZeros);
         }
 
-        for (int j = 1; j < Height - 1; j++)
+
+    private unsafe void ClearTemp(Tuple<int, int> range)
+    {
+        fixed (byte* tempPtr = _temp)
         {
-            _field[j * Width] = 0;
-            _field[j * Width + Width - 1] = 0;
+            for (int i = range.Item1; i < range.Item2; i += 8)
+        {
+                *(ulong*)(tempPtr + i) = 0;
+            }
         }
     }
 
@@ -119,6 +131,29 @@ public class GameOfLife
                 *ptr += *(ulong*)(fieldPtr + i + Width);
                 *ptr += *(ulong*)(fieldPtr + i + Width + 1);
             }
+        }
+    }
+
+
+    private unsafe void FillLife(Tuple<int, int> range)
+    {
+        fixed (byte* fieldPtr = _field, tempPtr = _temp)
+        {
+            for (int i = range.Item1; i < range.Item2; i++)
+            {
+                byte neighbours = (byte)((tempPtr[i] & 7) | (fieldPtr[i] << 3));
+                fieldPtr[i] = _alivePerNeighbours[neighbours];
+            }
+        }
+    }
+
+
+    private void FillBorderWithZeros(Tuple<int, int> range)
+    {
+        for (int j = range.Item1; j < range.Item2; j++)
+        {
+            _field[j * Width] = 0;
+            _field[j * Width + Width - 1] = 0;
         }
     }
 
