@@ -127,7 +127,9 @@ public class GameOfLife
     {
         Parallel.ForEach(Partitioner.Create(0, _totalCells), _parallelOptions, range =>
         {
-            for (int i = range.Item1; i < range.Item2; i++)
+            // (uint)i < (uint)length - подсказка компилятору,
+            // что обращение по индексу к массиву не нуждается в проверке диапазона
+            for (int i = range.Item1; (uint)i < (uint)range.Item2; i++)
             {
                 int y = i / _width;
                 int x = i % _width;
@@ -200,7 +202,7 @@ public class GameOfLife
             byte* currFieldPtr;
             ulong* currTempPtr;
 
-            for (int i = range.Item1; i < range.Item2; i += 8)
+            for (int i = range.Item1; (uint)i < (uint)range.Item2; i += 8)
             {
                 currFieldPtr = fieldPtr + i;
                 currTempPtr = (ulong*)(tempPtr + i);
@@ -232,7 +234,7 @@ public class GameOfLife
             byte cellStatus;
             int liveCellCount = 0;
 
-            for (int i = range.Item1; i < range.Item2; i++)
+            for (int i = range.Item1; (uint)i < (uint)range.Item2; i++)
             {
                 // Максимальное число соседей - 8 (4 бита). Уменьшим до 3 битов, т.к.
                 // 8 и 0 соседей дают одинаковый эффект, поэтому игнорируем четвертый бит
@@ -257,7 +259,7 @@ public class GameOfLife
     /// <param name="range">Отрезок границ на которых нужно заполнить клетки.</param>
     private void FillBorderWithZeros(Tuple<int, int> range)
     {
-        for (int j = range.Item1; j < range.Item2; j++)
+        for (int j = range.Item1; (uint)j < (uint)range.Item2; j++)
         {
             _field[j * _width] = 0;
             _field[j * _width + _width - 1] = 0;
@@ -275,9 +277,9 @@ public class GameOfLife
     {
         Random rand = new(seedForRandom);
 
-        for (int x = 1; x < _width - 1; x++)
+        for (int x = 1; (uint)x < (uint)_width - 1; x++)
         {
-            for (int y = 1; y < _height - 1; y++)
+            for (int y = 1; (uint)y < (uint)_height - 1; y++)
             {
                 bool isLiveCell = rand.NextDouble() < density;
                 Set(x, y, isLiveCell);
@@ -291,9 +293,9 @@ public class GameOfLife
     /// </summary>
     public void Clear()
     {
-        for (int i = 1; i < _width - 1; i++)
+        for (int i = 1; (uint)i < (uint)_width - 1; i++)
         {
-            for (int j = 1; j < _height - 1; j++)
+            for (int j = 1; (uint)j < (uint)_height - 1; j++)
             {
                 Set(i, j, false);
             }
