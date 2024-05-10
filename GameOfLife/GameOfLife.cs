@@ -202,6 +202,8 @@ public class GameOfLife
             byte* currFieldPtr;
             ulong* currTempPtr;
 
+            // Подсчёт соседей сразу для 8 клеток за счёт указателей.
+            // 1 клетка - 8 бит, в ulong указатель помещается 8 клеток
             for (int i = range.Item1; (uint)i < (uint)range.Item2; i += 8)
             {
                 currFieldPtr = fieldPtr + i;
