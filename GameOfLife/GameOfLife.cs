@@ -12,6 +12,22 @@ namespace GameOfLife;
 public class GameOfLife
 {
     /// <summary>
+    /// Получить ширину поля.
+    /// </summary>
+    public int Width
+    { 
+        get => _width;
+    }
+
+    /// <summary>
+    /// Получить высоту поля.
+    /// </summary>
+    public int Height
+    {
+        get => _height;
+    }
+
+    /// <summary>
     /// Максимальное количество потоков для вычислений.
     /// </summary>
     public int MaxCores
@@ -96,24 +112,6 @@ public class GameOfLife
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
-    }
-
-
-    /// <summary>
-    /// Получить ширину поля.
-    /// </summary>
-    public int GetWidth()
-    {
-        return _width;
-    }
-
-
-    /// <summary>
-    /// Получить высоту поля.
-    /// </summary>
-    public int GetHeight()
-    {
-        return _height;
     }
 
 
