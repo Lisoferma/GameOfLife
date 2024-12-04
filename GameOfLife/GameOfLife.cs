@@ -103,7 +103,7 @@ public class GameOfLife
     {
         _width = width;
         _height = height;
-        _totalCells = _width * _width;
+        _totalCells = _width * _height;
 
         _field = new byte[_totalCells];
         _temp = new byte[_totalCells];
@@ -129,10 +129,10 @@ public class GameOfLife
             // что обращение по индексу к массиву не нуждается в проверке диапазона
             for (int i = range.Item1; (uint)i < (uint)range.Item2; i++)
             {
-                int y = i / _width;
-                int x = i % _width;
+                int x = i / _width;
+                int y = i % _height;
 
-                if (_field[x * _width + y] == 1)
+                if (_field[y * _width + x] == 1)
                     image[y, x] = lifeColor;
                 else
                     image[y, x] = deadColor;
@@ -149,7 +149,7 @@ public class GameOfLife
     /// <returns>Состояние клекти: true - живая, false - мёртвая.</returns>
     public bool Get(int x, int y)
     {
-        return _field[x * _width + y] == 1;
+        return _field[y * _width + x] == 1;
     }
 
 
@@ -161,7 +161,7 @@ public class GameOfLife
     /// <param name="value">Состояние клекти: true - живая, false - мёртвая.</param>
     public void Set(int x, int y, bool value)
     {
-        _field[x * _width + y] = (byte)(value ? 1 : 0);
+        _field[y * _width + x] = (byte)(value ? 1 : 0);
     }
 
 
@@ -277,9 +277,9 @@ public class GameOfLife
     {
         Random rand = new(seedForRandom);
 
-        for (int x = 1; (uint)x < (uint)_width - 1; x++)
+        for (int y = 1; (uint)y < (uint)_height - 1; y++)
         {
-            for (int y = 1; (uint)y < (uint)_height - 1; y++)
+            for (int x = 1; (uint)x < (uint)_width - 1; x++)
             {
                 bool isLiveCell = rand.NextDouble() < density;
                 Set(x, y, isLiveCell);
