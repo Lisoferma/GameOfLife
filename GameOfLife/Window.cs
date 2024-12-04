@@ -12,8 +12,6 @@ namespace GameOfLife;
 internal class Window : GameWindow
 {
     private const string TITLE = "GameOfLife";
-    private const int CANVAS_WIDTH = 500;
-    private const int CANVAS_HEIGHT = 500;
 
     private double _frameTimeCounter = 0.0;   
     private int _fpsCounter = 0;
@@ -23,7 +21,9 @@ internal class Window : GameWindow
 
     private int _maxCores = Environment.ProcessorCount;
 
-    private int _fieldSize = CANVAS_WIDTH;
+    private int _fieldWidth = 500;
+    private int _fieldHeight = 500;
+
     private int _seed = 123;
     private float _density = 0.5f;
     private long _generation = 0;
@@ -47,11 +47,7 @@ internal class Window : GameWindow
 
         _gui = new ImGuiController(ClientSize.X, ClientSize.Y);
 
-        _canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT, ClientSize.X, ClientSize.Y);
-        _image = new Color[CANVAS_WIDTH, CANVAS_HEIGHT];
-        
-        _life = new(CANVAS_WIDTH, CANVAS_HEIGHT);
-        _life.GenerateRandomField(123, 0.5);      
+        CreateField();
     }
 
 
@@ -172,17 +168,18 @@ internal class Window : GameWindow
 
         if (ImGui.CollapsingHeader("Field"))
         {
-            ImGui.Text("Field size");
-            ImGui.InputInt("cells", ref _fieldSize);
-            if (ImGui.Button("Apply"))
-                RecreateCanvas(_fieldSize, _fieldSize);
-
-            ImGui.NewLine();
-            ImGui.Text("Generate random field");
+            ImGui.InputInt("width", ref _fieldWidth);
+            ImGui.InputInt("height", ref _fieldHeight);
             ImGui.InputInt("seed", ref _seed);
             ImGui.SliderFloat("density", ref _density, 0.0f, 1.0f);
-            if (ImGui.Button("Apply##2"))
-                _life.GenerateRandomField(_seed, _density);
+
+            if (ImGui.Button("Apply"))
+            {
+                if (IsFieldSizeChanged())
+                    CreateField();
+                else
+                    _life.GenerateRandomField(_seed, _density);
+            }           
         }
 
         if (ImGui.CollapsingHeader("Settings"))
@@ -201,13 +198,21 @@ internal class Window : GameWindow
     }
 
 
-    private void RecreateCanvas(int newWidth, int newHeight)
+    private void CreateField()
     {
-        _canvas.Dispose();
-        _canvas = new Canvas(newWidth, newHeight, ClientSize.X, ClientSize.Y);
-        _image = new Color[newWidth, newHeight];
+        _canvas?.Dispose();
 
-        _life = new(newWidth, newHeight);
-        _life.GenerateRandomField(123, 0.5);
+        _canvas = new Canvas(_fieldWidth, _fieldHeight, ClientSize.X, ClientSize.Y);
+        _image = new Color[_fieldWidth, _fieldHeight];
+
+        _life = new(_fieldWidth, _fieldHeight);
+        _life.GenerateRandomField(_seed, _density);
+    }
+
+
+    private bool IsFieldSizeChanged()
+    {
+        return _life.Width != _fieldWidth
+            || _life.Height != _fieldHeight;       
     }
 }
