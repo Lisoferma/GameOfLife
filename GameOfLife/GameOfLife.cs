@@ -30,7 +30,7 @@ public class GameOfLife
     /// <summary>
     /// Максимальное количество потоков для вычислений.
     /// </summary>
-    public int MaxCores
+    public int MaxThreads
     {
         get => _parallelOptions.MaxDegreeOfParallelism;
         set => _parallelOptions.MaxDegreeOfParallelism = value;
@@ -99,7 +99,8 @@ public class GameOfLife
     /// </summary>
     /// <param name="width">Ширина поля.</param>
     /// <param name="height">Высота поля.</param>
-    public GameOfLife(int width, int height)
+    /// <param name="maxThreads">Максимальное количество потоков для вычислений..</param>
+    public GameOfLife(int width, int height, int maxThreads)
     {
         _width = width;
         _height = height;
@@ -110,7 +111,7 @@ public class GameOfLife
 
         _parallelOptions = new ParallelOptions()
         {
-            MaxDegreeOfParallelism = Environment.ProcessorCount
+            MaxDegreeOfParallelism = maxThreads
         };
     }
 
